@@ -24,7 +24,6 @@ class LitellmResponseAPIModelConfig(LitellmModelConfig):
 class LitellmResponseAPIModel(LitellmModel):
     def __init__(self, *, config_class: Callable = LitellmResponseAPIModelConfig, **kwargs):
         super().__init__(config_class=config_class, **kwargs)
-        self._previous_response_id: str | None = None
 
     @retry(
         reraise=True,
@@ -49,11 +48,10 @@ class LitellmResponseAPIModel(LitellmModel):
             clean_messages = [{"role": msg["role"], "content": msg["content"]} for msg in messages]
             resp = litellm.responses(
                 model=self.config.model_name,
-                input=clean_messages if self._previous_response_id is None else clean_messages[-1:],
-                previous_response_id=self._previous_response_id,
+                input=clean_messages,
+                previous_response_id=None,
                 **(self.config.model_kwargs | kwargs),
             )
-            self._previous_response_id = getattr(resp, "id", None)
             return resp
         except litellm.exceptions.AuthenticationError as e:
             e.message += " You can permanently set your API key with `mini-extra config set KEY VALUE`."
